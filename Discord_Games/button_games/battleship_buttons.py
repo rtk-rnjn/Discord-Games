@@ -68,47 +68,46 @@ class BattleshipInput(discord.ui.Modal, title='Input a coordinate'):
 
         if not game.inputpat.fullmatch(content):
             return await interaction.response.send_message(f'`{content}` is not a valid coordinate!', ephemeral=True)
+        await interaction.response.defer()
+        raw, coords = game.get_coords(content)
+
+        sunk, hit = game.place_move(game.turn, coords)
+        next_turn = game.player2 if game.turn == game.player1 else game.player1
+
+        if hit and sunk:
+            game.turn.update_log(f'+ ({raw}) was a hit!, you also sank one of their ships! :)')
+            next_turn.update_log(f'- They went for ({raw}), and it was a hit!\nOne of your ships also got sunk! :(')
+        elif hit:
+            game.turn.update_log(f'+ ({raw}) was a hit :)')
+            next_turn.update_log(f'- They went for ({raw}), and it was a hit! :(')
         else:
-            await interaction.response.defer()
-            raw, coords = game.get_coords(content)
+            game.turn.update_log(f'- ({raw}) was a miss :(')
+            next_turn.update_log(f'+ They went for ({raw}), and it was a miss! :)')
 
-            sunk, hit = game.place_move(game.turn, coords)
-            next_turn = game.player2 if game.turn == game.player1 else game.player1
+        e1, f1, e2, f2 = await game.get_file(game.player1)
+        e3, f3, e4, f4 = await game.get_file(game.player2)
 
-            if hit and sunk:
-                game.turn.update_log(f'+ ({raw}) was a hit!, you also sank one of their ships! :)')
-                next_turn.update_log(f'- They went for ({raw}), and it was a hit!\nOne of your ships also got sunk! :(')
-            elif hit:
-                game.turn.update_log(f'+ ({raw}) was a hit :)')
-                next_turn.update_log(f'- They went for ({raw}), and it was a hit! :(')
-            else:
-                game.turn.update_log(f'- ({raw}) was a miss :(')
-                next_turn.update_log(f'+ They went for ({raw}), and it was a miss! :)')
+        game.turn = next_turn
 
-            e1, f1, e2, f2 = await game.get_file(game.player1)
-            e3, f3, e4, f4 = await game.get_file(game.player2)
+        game.player1.embed.set_field_at(0, name='\u200b', value=f'```yml\nturn: {game.turn.player}\n```')
+        game.player2.embed.set_field_at(0, name='\u200b', value=f'```yml\nturn: {game.turn.player}\n```')
 
-            game.turn = next_turn
+        await game.message1.edit(
+            content='**Battleship**', 
+            embeds=[e2, e1, game.player1.embed], 
+            attachments=[f2, f1],
+        )
+        await game.message2.edit(
+            content='**Battleship**', 
+            embeds=[e4, e3, game.player2.embed], 
+            attachments=[f4, f3],
+        )
 
-            game.player1.embed.set_field_at(0, name='\u200b', value=f'```yml\nturn: {game.turn.player}\n```')
-            game.player2.embed.set_field_at(0, name='\u200b', value=f'```yml\nturn: {game.turn.player}\n```')
-            
-            await game.message1.edit(
-                content='**Battleship**', 
-                embeds=[e2, e1, game.player1.embed], 
-                attachments=[f2, f1],
-            )
-            await game.message2.edit(
-                content='**Battleship**', 
-                embeds=[e4, e3, game.player2.embed], 
-                attachments=[f4, f3],
-            )
+        if winner := game.who_won():
+            await winner.send('Congrats, you won! :)')
 
-            if winner := game.who_won():
-                await winner.send('Congrats, you won! :)')
-
-                other = game.player2 if winner == game.player1 else game.player1
-                return await other.send('You lost, better luck next time :(')
+            other = game.player2 if winner == game.player1 else game.player1
+            return await other.send('You lost, better luck next time :(')
 
 class BattleshipButton(WordInputButton):
     view: BattleshipView
@@ -116,32 +115,37 @@ class BattleshipButton(WordInputButton):
     async def callback(self, interaction: discord.Interaction) -> None:
         game = self.view.game
 
-        if self.label == 'Cancel':
-            player = game.player2 if interaction.user == game.player2.player else game.player1
-            other_player = game.player2 if interaction.user == game.player1.player else game.player1
+        if self.label != 'Cancel':
+            return (
+                await interaction.response.send_message(
+                    'It is not your turn yet!', ephemeral=True
+                )
+                if interaction.user != game.turn.player
+                else await interaction.response.send_modal(
+                    BattleshipInput(self.view)
+                )
+            )
 
-            if not player.approves_cancel:
-                player.approves_cancel = True
+        player = game.player2 if interaction.user == game.player2.player else game.player1
+        other_player = game.player2 if interaction.user == game.player1.player else game.player1
 
-            await interaction.response.defer()
+        if not player.approves_cancel:
+            player.approves_cancel = True
 
-            if not other_player.approves_cancel:
-                await player.send('- Waiting for opponent to approve cancellation -')
-                await other_player.send('Opponent wants to cancel, press the `Cancel` button if you approve.')
-            else:
-                game.view1.disable_all()
-                game.view2.disable_all()
+        await interaction.response.defer()
 
-                await game.player1.send('**GAME OVER**, Cancelled')
-                await game.player2.send('**GAME OVER**, Cancelled')
-
-                await game.message1.edit(view=game.view1)
-                return await game.message2.edit(view=game.view2)
+        if not other_player.approves_cancel:
+            await player.send('- Waiting for opponent to approve cancellation -')
+            await other_player.send('Opponent wants to cancel, press the `Cancel` button if you approve.')
         else:
-            if interaction.user != game.turn.player:
-                return await interaction.response.send_message('It is not your turn yet!', ephemeral=True)
-            else:
-                return await interaction.response.send_modal(BattleshipInput(self.view))
+            game.view1.disable_all()
+            game.view2.disable_all()
+
+            await game.player1.send('**GAME OVER**, Cancelled')
+            await game.player2.send('**GAME OVER**, Cancelled')
+
+            await game.message1.edit(view=game.view1)
+            return await game.message2.edit(view=game.view2)
 
 class BattleshipView(discord.ui.View):
 
@@ -169,11 +173,11 @@ class SetupInput(discord.ui.Modal):
     def __init__(self, button: SetupButton) -> None:
         self.button = button
         self.ship = self.button.label
-    
+
         super().__init__(title=f'{self.ship} Setup')
 
         self.start_coord = discord.ui.TextInput(
-            label=f'Enter the starting coordinate',
+            label='Enter the starting coordinate',
             placeholder='ex: a8',
             style=discord.TextStyle.short,
             required=True,
@@ -181,14 +185,16 @@ class SetupInput(discord.ui.Modal):
             max_length=3,
         )
 
+
         self.is_vertical = discord.ui.TextInput(
-            label=f'Do you want it to be vertical? (y/n)',
+            label='Do you want it to be vertical? (y/n)',
             placeholder='"y" or "n"',
             style=discord.TextStyle.short,
             required=True,
             min_length=1,
             max_length=1,
         )
+
 
         self.add_item(self.start_coord)
         self.add_item(self.is_vertical)
@@ -205,7 +211,10 @@ class SetupInput(discord.ui.Modal):
             return await interaction.response.send_message(f'{start} is not a valid coordinate!', ephemeral=True)
 
         if vertical not in ('y', 'n'):
-            return await interaction.response.send_message(f'Response for `vertical` must be either `y` or `n`', ephemeral=True)
+            return await interaction.response.send_message(
+                'Response for `vertical` must be either `y` or `n`', ephemeral=True
+            )
+
 
         vertical = vertical != 'y'
 

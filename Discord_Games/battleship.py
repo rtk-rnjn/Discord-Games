@@ -44,7 +44,7 @@ class Ship:
         self.start: Coords = start
         self.vertical: bool = vertical
         self.color: tuple[int, int, int] = color
-        
+
         self.end: Coords = (
             (self.start[0], self.start[1] + self.size - 1) if self.vertical else
             (self.start[0] + self.size - 1, self.start[1])
@@ -85,10 +85,9 @@ class Board:
         if ship.end[0] > 10 or ship.end[1] > 10:
             return False
 
-        for existing in self.ships:
-            if any(c in existing.span for c in ship.span):
-                return False
-        return True
+        return not any(
+            any(c in existing.span for c in ship.span) for existing in self.ships
+        )
 
     def _place_ships(self) -> None:
 
@@ -154,7 +153,7 @@ class Board:
 
         with Image.open(fr'{pathlib.Path(__file__).parent}\assets\battleship.png') as img:
             cur = ImageDraw.Draw(img)
-            
+
             for i, y in zip(
                 range(1, 11), range(75, 530, 50)
             ):
@@ -166,13 +165,10 @@ class Board:
                         self.draw_dot(cur, x, y, fill=GRAY)
 
                     elif coord in self.op_hits:
-                        if hide:
-                            self.draw_dot(cur, x, y, fill=RED)
-                        else:
+                        if not hide:
                             ship = self.get_ship(coord)
                             self.draw_sq(cur, x, y, coord=coord, ship=ship)
-                            self.draw_dot(cur, x, y, fill=RED)
-
+                        self.draw_dot(cur, x, y, fill=RED)
                     elif ship := self.get_ship(coord):
                         if not hide:
                             self.draw_sq(cur, x, y, coord=coord, ship=ship)

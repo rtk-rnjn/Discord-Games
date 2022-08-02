@@ -39,19 +39,18 @@ class RockPaperScissors:
             color=embed_color,
         )
         self.message = await ctx.send(embed=embed)
-        
+
         for option in self.OPTIONS:
             await self.message.add_reaction(option)
 
         bot_choice = random.choice(self.OPTIONS)
         user_choice = await self.wait_for_choice(ctx)
-        
+
         if user_choice == bot_choice:
-            embed.description = f'**Tie!**\nWe both picked {user_choice}'  
+            embed.description = f'**Tie!**\nWe both picked {user_choice}'
+        elif self.check_win(bot_choice, user_choice):
+            embed.description = f'**You Won!**\nYou picked {user_choice} and I picked {bot_choice}.'
         else:
-            if self.check_win(bot_choice, user_choice):
-                embed.description = f'**You Won!**\nYou picked {user_choice} and I picked {bot_choice}.'
-            else:
-                embed.description = f'**You Lost!**\nI picked {bot_choice} and you picked {user_choice}.'
-                
+            embed.description = f'**You Lost!**\nI picked {bot_choice} and you picked {user_choice}.'
+
         return await self.message.edit(embed=embed)

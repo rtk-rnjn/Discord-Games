@@ -31,22 +31,21 @@ class WordInput(discord.ui.Modal, title='Word Input'):
 
         if content not in game._valid_words:
             return await interaction.response.send_message('That is not a valid word!', ephemeral=True)
-        else:
-            won = game.parse_guess(content)
-            buf = await game.render_image()
+        won = game.parse_guess(content)
+        buf = await game.render_image()
 
-            embed = discord.Embed(title='Wordle!', color=self.view.game.color)
-            embed.set_image(url='attachment://wordle.png')
-            file = discord.File(buf, 'wordle.png')
+        embed = discord.Embed(title='Wordle!', color=self.view.game.color)
+        embed.set_image(url='attachment://wordle.png')
+        file = discord.File(buf, 'wordle.png')
 
-            if won:
-                self.disable_all()
-                await interaction.message.reply('Game Over! You won!', mention_author=True)
-            elif len(game.guesses) >= 6:
-                self.disable_all()
-                await interaction.message.reply(f'Game Over! You lose, the word was: **{game.word}**', mention_author=True)
-            
-            return await interaction.response.edit_message(embed=embed, attachments=[file], view=self.view)
+        if won:
+            self.disable_all()
+            await interaction.message.reply('Game Over! You won!', mention_author=True)
+        elif len(game.guesses) >= 6:
+            self.disable_all()
+            await interaction.message.reply(f'Game Over! You lose, the word was: **{game.word}**', mention_author=True)
+
+        return await interaction.response.edit_message(embed=embed, attachments=[file], view=self.view)
 
 class WordInputButton(discord.ui.Button):
     view: WordleView
@@ -61,12 +60,10 @@ class WordInputButton(discord.ui.Button):
         game = self.view.game
         if interaction.user != game.player:
             return await interaction.response.send_message("This isn't your game!", ephemeral=True)
-        else:
-            if self.label == 'Cancel':
-                await interaction.response.send_message(f'Game Over! the word was: **{game.word}**')
-                return await interaction.message.delete()
-            else:
-                return await interaction.response.send_modal(WordInput(self.view))
+        if self.label != 'Cancel':
+            return await interaction.response.send_modal(WordInput(self.view))
+        await interaction.response.send_message(f'Game Over! the word was: **{game.word}**')
+        return await interaction.message.delete()
 
 class WordleView(discord.ui.View):
     

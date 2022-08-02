@@ -32,25 +32,24 @@ class LightsOutButton(discord.ui.Button):
 
         if interaction.user != game.player:
             return await interaction.response.send_message('This is not your game!', ephemeral=True)
-        else:
-            row, col = self.row, self.col
+        row, col = self.row, self.col
 
-            beside_item = game.beside_item(row, col)
-            game.toggle(row, col)
+        beside_item = game.beside_item(row, col)
+        game.toggle(row, col)
 
-            for i, j in beside_item:
-                game.toggle(i, j)
+        for i, j in beside_item:
+            game.toggle(i, j)
 
-            self.view.update_board(clear=True)
+        self.view.update_board(clear=True)
 
-            game.moves += 1
-            game.embed.set_field_at(0, name='\u200b', value=f'Moves: `{game.moves}`')
+        game.moves += 1
+        game.embed.set_field_at(0, name='\u200b', value=f'Moves: `{game.moves}`')
 
-            if game.tiles == game.completed:
-                self.view.disable_all()
-                game.embed.description = '**Congrats! You won!**'
-                    
-            return await interaction.response.edit_message(embed=game.embed, view=self.view)
+        if game.tiles == game.completed:
+            self.view.disable_all()
+            game.embed.description = '**Congrats! You won!**'
+
+        return await interaction.response.edit_message(embed=game.embed, view=self.view)
 
 class LightsOutView(SlideView):
     game: LightsOut
@@ -101,10 +100,11 @@ class LightsOut:
             (row, col+1),
         ]
 
-        data = [
-            (i, j) for i, j in beside if i in range(self.count) and j in range(self.count)
+        return [
+            (i, j)
+            for i, j in beside
+            if i in range(self.count) and j in range(self.count)
         ]
-        return data
 
     async def start(
         self, 

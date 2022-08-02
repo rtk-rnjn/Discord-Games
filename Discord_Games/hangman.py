@@ -100,7 +100,7 @@ class Hangman:
         self._all_words = tuple(english_words_lower_alpha_set)
         self.word = self.get_word()
         self.letters: list[str] = list(self.word)
-        
+
         self.correct: list[str] = [r"\_" for _ in self.word]
         self.wrong_letters: list[str] = []
 

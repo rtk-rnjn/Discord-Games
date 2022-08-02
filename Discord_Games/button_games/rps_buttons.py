@@ -38,50 +38,50 @@ class RPSButton(discord.ui.Button):
 
         if interaction.user not in players:
             return await interaction.response.send_message('This is not your game!', ephemeral=True)
-        else:
-            if not game.player2:
-                bot_choice = random.choice(game.OPTIONS)
-                user_choice = self.emoji.name
+        if not game.player2:
+            bot_choice = random.choice(game.OPTIONS)
+            user_choice = self.emoji.name
 
-                if user_choice == bot_choice:
-                    game.embed.description = f'**Tie!**\nWe both picked {user_choice}'  
-                else:
-                    if game.check_win(bot_choice, user_choice):
-                        game.embed.description = f'**You Won!**\nYou picked {user_choice} and I picked {bot_choice}.'
-                    else:
-                        game.embed.description = f'**You Lost!**\nI picked {bot_choice} and you picked {user_choice}.'
-                
+            if user_choice == bot_choice:
+                game.embed.description = f'**Tie!**\nWe both picked {user_choice}'
+            else:
+                game.embed.description = (
+                    f'**You Won!**\nYou picked {user_choice} and I picked {bot_choice}.'
+                    if game.check_win(bot_choice, user_choice)
+                    else f'**You Lost!**\nI picked {bot_choice} and you picked {user_choice}.'
+                )
+
+            self.disable_all()
+
+        else:
+            if self.get_choice(interaction.user):
+                return await interaction.response.send_message('You have chosen already!', ephemeral=True)
+
+            other_player_choice = self.get_choice(interaction.user, other=True)
+
+            if interaction.user == game.player1:
+                game.player1_choice = self.emoji.name
+
+                if not other_player_choice:
+                    game.embed.description += f'\n\n{game.player1.mention} has chosen...\n*Waiting for {game.player2.mention} to choose...*'
+            else:
+                game.player2_choice = self.emoji.name
+
+                if not other_player_choice:
+                    game.embed.description += f'\n\n{game.player2.mention} has chosen...\n*Waiting for {game.player1.mention} to choose...*'
+
+            if game.player1_choice and game.player2_choice:
+                who_won = game.player1 if game.BEATS[game.player1_choice] == game.player2_choice else game.player2
+
+                game.embed.description = (
+                    f'**{who_won.mention} Won!**'
+                    f'\n\n{game.player1.mention} chose {game.player1_choice}.'
+                    f'\n{game.player2.mention} chose {game.player2_choice}.'
+                )
+
                 self.disable_all()
 
-            else:
-                if self.get_choice(interaction.user):
-                    return await interaction.response.send_message('You have chosen already!', ephemeral=True)
-
-                other_player_choice = self.get_choice(interaction.user, other=True)
-
-                if interaction.user == game.player1:
-                    game.player1_choice = self.emoji.name
-
-                    if not other_player_choice:
-                        game.embed.description += f'\n\n{game.player1.mention} has chosen...\n*Waiting for {game.player2.mention} to choose...*'
-                else:
-                    game.player2_choice = self.emoji.name
-
-                    if not other_player_choice:
-                        game.embed.description += f'\n\n{game.player2.mention} has chosen...\n*Waiting for {game.player1.mention} to choose...*'
-                    
-                if game.player1_choice and game.player2_choice:
-                    who_won = game.player1 if game.BEATS[game.player1_choice] == game.player2_choice else game.player2
-
-                    game.embed.description = (
-                        f'**{who_won.mention} Won!**'
-                        f'\n\n{game.player1.mention} chose {game.player1_choice}.'
-                        f'\n{game.player2.mention} chose {game.player2_choice}.'
-                    )
-
-                    self.disable_all()
-
-            return await interaction.response.edit_message(embed=game.embed, view=self.view)
+        return await interaction.response.edit_message(embed=game.embed, view=self.view)
 
 class RPSView(discord.ui.View):
     game: BetaRockPaperScissors

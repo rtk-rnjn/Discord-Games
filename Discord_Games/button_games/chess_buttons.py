@@ -44,19 +44,18 @@ class ChessInput(discord.ui.Modal, title='Make your move'):
             is_valid_uci = game.board.parse_uci(uci)
         except ValueError:
             is_valid_uci = False
-        
+
         if not is_valid_uci:
             return await interaction.response.send_message(f'Invalid coordinates for move: `{from_coord} -> {to_coord}`', ephemeral=True)
+        await game.place_move(uci)
+
+        if game.board.is_game_over():
+            self.view.disable_all()
+            embed = await game.fetch_results()
         else:
-            await game.place_move(uci)
+            embed = await game.make_embed()
 
-            if game.board.is_game_over():
-                self.view.disable_all()
-                embed = await game.fetch_results()
-            else:
-                embed = await game.make_embed()
-
-            return await interaction.response.edit_message(embed=embed, view=self.view)
+        return await interaction.response.edit_message(embed=embed, view=self.view)
 
 class ChessButton(WordInputButton):
     view: ChessView
@@ -65,16 +64,18 @@ class ChessButton(WordInputButton):
         game = self.view.game
         if interaction.user not in (game.black, game.white):
             return await interaction.response.send_message("You are not part of this game!", ephemeral=True)
-        else:
-            if self.label == 'Cancel':
-                self.view.disable_all()
-                await interaction.message.edit(view=self.view)
-                return await interaction.response.send_message(f'**Game Over!** Cancelled')
-            else:
-                if interaction.user != game.turn:
-                    return await interaction.response.send_message('It is not your turn yet!', ephemeral=True)
-                else:
-                    return await interaction.response.send_modal(ChessInput(self.view))
+        if self.label != 'Cancel':
+            return (
+                await interaction.response.send_message(
+                    'It is not your turn yet!', ephemeral=True
+                )
+                if interaction.user != game.turn
+                else await interaction.response.send_modal(ChessInput(self.view))
+            )
+
+        self.view.disable_all()
+        await interaction.message.edit(view=self.view)
+        return await interaction.response.send_message('**Game Over!** Cancelled')
 
 class ChessView(discord.ui.View):
 

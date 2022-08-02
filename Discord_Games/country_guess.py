@@ -34,11 +34,7 @@ class CountryGuesser:
         self.is_flags = is_flags
         self.hard_mode = hard_mode
 
-        if self.is_flags:
-            self.light_mode: bool = False
-        else:
-            self.light_mode: bool = light_mode
-
+        self.light_mode: bool = False if self.is_flags else light_mode
         folder = r'\country-flags' if self.is_flags else r'\country-data'
         self._countries_path = fr'{pathlib.Path(__file__).parent}\assets{folder}'
 
@@ -116,10 +112,9 @@ class CountryGuesser:
         message: discord.Message = await ctx.bot.wait_for('message', check=check)
         content = message.content.strip().lower()
 
-        if options:
-            if not content in options:
-                return
-            
+        if options and content not in options:
+            return
+
         return message, content
 
     async def start(
@@ -149,23 +144,22 @@ class CountryGuesser:
 
             if response == self.country:
                 return await msg.reply(f'That is correct! The country was `{self.country.title()}`')
+            self.guesses -= 1
+
+            if not self.guesses:
+                return await msg.reply(f'Game Over! you lost, The country was `{self.country.title()}`')
+
+            acc = self.get_accuracy(response)
+
+            if not self.hints:
+                await msg.reply(f'That was incorrect! but you are `{acc}%` of the way there!\nYou have **{self.guesses}** guesses left.', mention_author=False)
             else:
-                self.guesses -= 1
+                await msg.reply(f'That is incorrect! but you are `{acc}%` of the way there!\nWould you like a hint? type: `(y/n)`', mention_author=False)
 
-                if not self.guesses:
-                    return await msg.reply(f'Game Over! you lost, The country was `{self.country.title()}`')
-                
-                acc = self.get_accuracy(response)
-
-                if not self.hints:
-                    await msg.reply(f'That was incorrect! but you are `{acc}%` of the way there!\nYou have **{self.guesses}** guesses left.', mention_author=False)
+                hint_msg, resp = await self.wait_for_response(ctx, options=('y', 'n'))
+                if resp == 'y':
+                    hint = self.get_hint()
+                    self.hints -= 1
+                    await hint_msg.reply(f'Here is your hint: `{hint}`', mention_author=False)
                 else:
-                    await msg.reply(f'That is incorrect! but you are `{acc}%` of the way there!\nWould you like a hint? type: `(y/n)`', mention_author=False)
-
-                    hint_msg, resp = await self.wait_for_response(ctx, options=('y', 'n'))
-                    if resp == 'y':
-                        hint = self.get_hint()
-                        self.hints -= 1
-                        await hint_msg.reply(f'Here is your hint: `{hint}`', mention_author=False)
-                    else:
-                        await hint_msg.reply(f'Okay continue guessing! You have **{self.guesses}** guesses left.', mention_author=False)
+                    await hint_msg.reply(f'Okay continue guessing! You have **{self.guesses}** guesses left.', mention_author=False)

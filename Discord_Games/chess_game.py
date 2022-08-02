@@ -107,7 +107,7 @@ class Chess:
 
             if self.board.is_game_over():
                 break
-            
+
             await self.message.edit(embed=embed)
 
         embed = await self.fetch_results()

@@ -24,10 +24,10 @@ class Twenty48:
         *,
         render_image: bool = False,
     ) -> None:
-        
+
         self.board: Board = [[0 for _ in range(4)] for _ in range(4)]
         self.message: Optional[discord.Message] = None
-        
+
         self._controls = ['➡️', '⬅️', '⬇️', '⬆️']
         self._conversion = number_to_display_mapping
         self._render_image = render_image
@@ -136,23 +136,19 @@ class Twenty48:
 
     def number_to_emoji(self) -> str:
         board = self.board
-        game_string = ""
-
         emoji_array = [
             [self._conversion.get(str(l), f'`{l}` ') for l in row] 
             for row in board
         ]
 
-        for row in emoji_array:
-            game_string += "".join(row) + "\n"
-        return game_string
+        return "".join("".join(row) + "\n" for row in emoji_array)
 
     @executor()
     def render_image(self) -> discord.File:
         SQ = self.SQ_S
         with Image.new('RGB', (self.IMG_LENGTH, self.IMG_LENGTH), self.BG_CLR) as img:
             cursor = ImageDraw.Draw(img)
-            
+
             x = y = self.BORDER_W
             for row in self.board:
                 for tile in row:
@@ -162,13 +158,13 @@ class Twenty48:
                     cursor.rounded_rectangle((x, y, x+SQ, y+SQ), radius=5, width=0, fill=color)
 
                     if tile != '0':
-                        text_fill = self.DARK_CLR if tile in ('2', '4') else self.LIGHT_CLR
+                        text_fill = self.DARK_CLR if tile in {'2', '4'} else self.LIGHT_CLR
                         cursor.text((x+SQ/2, y+SQ/2), tile, font=font, anchor='mm', fill=text_fill)
 
                     x += SQ + self.SPACE_W
                 x = self.BORDER_W
                 y += SQ + self.SPACE_W
-        
+
             buf = BytesIO()
             img.save(buf, 'PNG')
         buf.seek(0)

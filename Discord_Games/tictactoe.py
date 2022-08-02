@@ -43,10 +43,7 @@ class Tictactoe:
         }
 
     def board_string(self) -> str:
-        board = ""
-        for row in self.board:
-            board += "".join(row) + "\n"
-        return board
+        return "".join("".join(row) + "\n" for row in self.board)
 
     def make_embed(self, color: DiscordColor = DEFAULT_COLOR, *, tie: bool = False) -> discord.Embed:
         embed = discord.Embed(color=color)
@@ -61,15 +58,14 @@ class Tictactoe:
 
         if emoji not in self._controls:
             raise KeyError("Provided emoji is not one of the valid controls")
-        else:
-            x, y = self._conversion[emoji]
-            piece = self.player_to_emoji[user]
-            self.board[x][y] = piece
+        x, y = self._conversion[emoji]
+        piece = self.player_to_emoji[user]
+        self.board[x][y] = piece
 
-            self.turn = self.circle if user == self.cross else self.cross
-            self._conversion.pop(emoji)
-            self._controls.remove(emoji)
-            return self.board
+        self.turn = self.circle if user == self.cross else self.cross
+        self._conversion.pop(emoji)
+        self._controls.remove(emoji)
+        return self.board
 
     def is_game_over(self) -> bool:
 
@@ -95,13 +91,13 @@ class Tictactoe:
             self.winning_indexes = [(0, 0), (1, 1), (2, 2)]
 
             return True
-           
+
         if (self.board[0][2] == self.board[1][1] == self.board[2][0]) and self.board[0][2] != self.BLANK:
             self.winner = self.emoji_to_player[self.board[0][2]]
             self.winning_indexes = [(0, 2), (1, 1), (2, 0)]
 
             return True
-           
+
         return False
 
     async def start(

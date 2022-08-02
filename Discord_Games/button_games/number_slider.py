@@ -29,27 +29,25 @@ class SlideButton(discord.ui.Button):
 
         if interaction.user != game.player:
             return await interaction.response.send_message('This is not your game!', ephemeral=True)
-        else:
-            num = int(self.label)
+        num = int(self.label)
 
-            if num not in game.beside_blank():
-                return await interaction.response.defer()
-            else:
-                ix, iy = game.get_item(num)
-                nx, ny = game.get_item()
+        if num not in game.beside_blank():
+            return await interaction.response.defer()
+        ix, iy = game.get_item(num)
+        nx, ny = game.get_item()
 
-                game.numbers[nx][ny], game.numbers[ix][iy] = game.numbers[ix][iy], game.numbers[nx][ny]
+        game.numbers[nx][ny], game.numbers[ix][iy] = game.numbers[ix][iy], game.numbers[nx][ny]
 
-                self.view.update_board(clear=True)
+        self.view.update_board(clear=True)
 
-                game.moves += 1
-                game.embed.set_field_at(0, name='\u200b', value=f'Moves: `{game.moves}`')
+        game.moves += 1
+        game.embed.set_field_at(0, name='\u200b', value=f'Moves: `{game.moves}`')
 
-                if game.numbers == game.completed:
-                    self.view.disable_all()
-                    game.embed.description = '**Congrats! You won!**'
-                        
-                return await interaction.response.edit_message(embed=game.embed, view=self.view)
+        if game.numbers == game.completed:
+            self.view.disable_all()
+            game.embed.description = '**Congrats! You won!**'
+
+        return await interaction.response.edit_message(embed=game.embed, view=self.view)
             
 class SlideView(discord.ui.View):
 
@@ -112,11 +110,11 @@ class NumberSlider:
             (nx, ny+1),
         ]
 
-        data = [
-            self.numbers[i][j] for i, j in beside_item
+        return [
+            self.numbers[i][j]
+            for i, j in beside_item
             if i in range(self.count) and j in range(self.count)
         ]
-        return data
 
     async def start(
         self, 

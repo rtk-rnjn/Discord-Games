@@ -43,7 +43,7 @@ class TTTButton(discord.ui.Button):
             for button in self.view.children:
                 if isinstance(button, discord.ui.Button):
                     button.disabled = True
-            
+
             for y, x in game.winning_indexes:
                 row = [button for button in self.view.children if button.row == y]
                 button = row[x]

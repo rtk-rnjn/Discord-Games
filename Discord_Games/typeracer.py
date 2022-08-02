@@ -116,14 +116,14 @@ class TypeRacer:
                 "acc" : difflib.SequenceMatcher(None, content, text).ratio() * 100
             })
 
-            self._embed.description += self.format_line(len(winners), winners[len(winners) - 1]) + "\n"
+            self._embed.description += self.format_line(len(winners), winners[-1]) + "\n"
             await self._message.edit(embed=self._embed)
 
             await message.add_reaction(self.EMOJI_MAP[len(winners)])
 
             if len(winners) >= 3:
                 break
-        
+
         desc = [self.format_line(i, x) for i, x in enumerate(winners, 1)]
         embed = discord.Embed(
             title="Typerace results",
@@ -151,12 +151,11 @@ class TypeRacer:
         if not words_mode:
             async with aiohttp.ClientSession() as session:
                 async with session.get(self.SENTENCE_URL) as r:
-                    if r.ok:
-                        text = await r.json()
-                        text = text.get("content")
-                    else:
+                    if not r.ok:
                         raise RuntimeError(f"HTTP request raised an error: {r.status}; {r.reason}")
 
+                    text = await r.json()
+                    text = text.get("content")
         else:
             text = " ".join(random.choice(self.GRAMMAR_WORDS).lower() for _ in range(15))
 
